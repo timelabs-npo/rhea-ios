@@ -1,77 +1,65 @@
 # Rhea iOS
 
-Multi-model advisory system — iOS client with keyboard extension and shared Swift package.
+**Take the question out of the control room.**
 
-**TestFlight:** https://testflight.apple.com/join/BNya22Jg
+Rhea iOS brings the agent conversation, task queue, research views, and operating signals to a SwiftUI mobile interface. It includes main-app sources, keyboard-extension sources, and a local copy of the shared RheaKit package.
 
-## Structure
+A question should be allowed to follow you outside. So should the ability to inspect the answer: which work is still open, which agents are speaking, what the request is costing. The phone is another place to ask and observe.
 
-```
-Sources/
-  RheaPreview/       — main app entry point and SwiftUI screens
-  RheaKeyboard/      — custom keyboard extension (AI-assisted input)
-Packages/
-  RheaKit/           — shared Swift package (views, API client, auth)
-project.yml          — xcodegen project definition
-```
+**Current form:** an extracted client source tree. The Xcode project specifications still contain unresolved paths from the original workspace, so this checkout needs integration repair before it can offer a reliable standalone app build.
 
-## Tabs
+## What the phone opens
 
-| Tab | Purpose |
-|-----|---------|
-| Tribunal | Submit claims, watch 3-5 models debate |
-| Radio | Live agent communication feed |
-| Governor | Token budgets, cost tracking |
-| Tasks | Persistent task queue |
-| Atlas | 3D knowledge graph |
-| Pulse | System health |
-| Aletheia | Immutable proof browser |
-| Settings | Server URL, auth |
+The current [app shell](Sources/RheaPreview/RheaPreviewApp.swift) has eight destinations:
 
-## Build Instructions
+| Destination | Purpose |
+|---|---|
+| Ops | Operational overview |
+| Tribunal | Questions and model responses |
+| Bio | Biological/molecular visualization |
+| Radio | Agent communication |
+| Tasks | Task queue |
+| Governor | Budget and service views |
+| Tools | Additional tools and inputs |
+| Config | Settings and connection |
 
-### Prerequisites
+Requests go to the configured Rhea services. A mobile view does not acquire execution authority merely by sharing a backend with a desktop client; the receiving service's behavior and permissions still determine the result.
 
-- Xcode 16+ (deployment target: iOS 17.0)
-- [xcodegen](https://github.com/yonaskolb/XcodeGen): `brew install xcodegen`
-- Apple Developer account with team ID `398XACWZ7G`
+## Find your way through the source
 
-### Generate and build
+| Path | What lives here |
+|---|---|
+| [Sources/RheaPreview](Sources/RheaPreview) | App entry and SwiftUI screens |
+| [Sources/RheaKeyboard](Sources/RheaKeyboard) | Keyboard controller, UI, and its own API client |
+| [packages/RheaKit](packages/RheaKit) | Shared views, state, API, and authentication code |
+| [project.yml](project.yml) | Root XcodeGen specification |
+| [RheaApp/project.yml](RheaApp/project.yml) | Earlier nested XcodeGen specification |
 
-```bash
-# Generate the Xcode project
-xcodegen generate
+The directory is lower-case `packages`. The keyboard client is separate from RheaKit; shared authentication requires an explicit containing-app/extension setup.
 
-# Build for simulator
-xcodebuild -scheme RheaApp -destination 'platform=iOS Simulator,name=iPhone 15' build
+[RheaKit's AppConfig](packages/RheaKit/Sources/RheaKit/AppConfig.swift) uses localhost for the simulator and the configured cloud address elsewhere. Its startup migration replaces saved local/private-network addresses on non-simulator launches. Successful service access and live data must be established for the selected environment.
 
-# Build for device / archive for TestFlight
-xcodebuild -scheme RheaApp -configuration Release archive \
-  -archivePath build/RheaApp.xcarchive
-```
+## Start with the package; account for the extraction
 
-### RheaKit package (standalone)
+With a Swift toolchain installed, inspect the bundled package without claiming an app build:
 
 ```bash
-cd Packages/RheaKit
-swift build
+swift package --package-path packages/RheaKit dump-package
 ```
 
-## Key Dependencies
+The declared application target is `RheaApp`, with iOS 17 as its deployment target. However, both project specifications refer to old locations including `../../packages/RheaKit`, `../RheaPreview.swiftpm/Sources`, and sibling keyboard/tunnel directories. The referenced tunnel source and entitlement files are absent from this clone.
 
-| Package | Purpose |
-|---------|---------|
-| GRDB.swift | Local SQLite persistence |
-| KeychainAccess | JWT token storage |
-| Starscream | WebSocket for live agent feeds |
-| swift-markdown-ui | Rendered markdown in chat |
-| AnimatedTabBar | Tab bar animations |
+A standalone build therefore needs the source/package paths reconciled, the missing extension inputs supplied or its targets deliberately revised, and appropriate signing/capability configuration. Running `xcodegen generate` against the current files does not resolve those missing inputs.
 
-## Architecture
+The ambition remains a portable instrument: a request can leave the desk without leaving its context behind. The next engineering step is to make this extracted application reproducibly buildable, then verify its service and extension paths on the intended devices.
 
-- **Auth**: email/password + Sign in with Apple, JWT stored in Keychain
-- **API**: connects to `rhea-tribunal.fly.dev` (gateway, 54+ endpoints)
-- **Keyboard**: shares Keychain group with main app, reads JWT, calls tribunal API
-- **RheaKit**: shared library used by iOS app and macOS Play app
+## The surrounding system
 
-Part of [TimeLabs NPO](https://github.com/timelabs-npo) open infrastructure.
+Start at [the Rhea family entrance](https://blueshoes.space/rhea/).
+
+- [Rhea / Tribunal](https://github.com/timelabs-npo/rhea-project) contains the coordination and backend work.
+- [Rhea Play](https://github.com/timelabs-npo/rhea-play) is the related macOS operations application.
+- [RheaKeyboard](https://github.com/timelabs-npo/rhea-keyboard) maintains standalone keyboard-package sources.
+- [Rhea Atlas](https://github.com/timelabs-npo/rhea-atlas) develops the web interface to the system.
+
+MIT — see [LICENSE](LICENSE).
